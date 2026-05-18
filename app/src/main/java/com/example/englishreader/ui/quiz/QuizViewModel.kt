@@ -100,8 +100,9 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun evaluateDifficulty(score: Float) {
         viewModelScope.launch {
-            val currentLevel = prefs.getInt("current_level", 5)
-            val scores = getRecentScores(score)
+            val lang = prefs.getString("language", "en") ?: "en"
+            val currentLevel = prefs.getInt("current_level_$lang", 5)
+            val scores = getRecentScores(score, lang)
             val action = difficultyEngine.evaluate(currentLevel, scores)
             if (action != DifficultyAction.STAY) {
                 val newLevel = when (action) {
@@ -109,27 +110,27 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                     DifficultyAction.LEVEL_DOWN -> (currentLevel - 1).coerceAtLeast(1)
                     else -> currentLevel
                 }
-                prefs.edit().putInt("current_level", newLevel).apply()
-                saveScore(score)
+                prefs.edit().putInt("current_level_$lang", newLevel).apply()
+                saveScore(score, lang)
                 _uiState.update { it.copy(levelChanged = action) }
             } else {
-                saveScore(score)
+                saveScore(score, lang)
             }
         }
     }
 
-    private fun getRecentScores(currentScore: Float): List<Float> {
-        val saved = prefs.getString("recent_scores", "") ?: ""
+    private fun getRecentScores(currentScore: Float, lang: String): List<Float> {
+        val saved = prefs.getString("recent_scores_$lang", "") ?: ""
         val list = saved.split(",").filter { it.isNotBlank() }.map { it.toFloat() }.toMutableList()
         list.add(currentScore)
         return list.takeLast(10)
     }
 
-    private fun saveScore(score: Float) {
-        val saved = prefs.getString("recent_scores", "") ?: ""
+    private fun saveScore(score: Float, lang: String) {
+        val saved = prefs.getString("recent_scores_$lang", "") ?: ""
         val list = saved.split(",").filter { it.isNotBlank() }.toMutableList()
         list.add(score.toString())
         val trimmed = list.takeLast(10)
-        prefs.edit().putString("recent_scores", trimmed.joinToString(",")).apply()
+        prefs.edit().putString("recent_scores_$lang", trimmed.joinToString(",")).apply()
     }
 }

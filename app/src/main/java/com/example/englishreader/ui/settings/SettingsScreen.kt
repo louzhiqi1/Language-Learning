@@ -17,7 +17,7 @@ fun SettingsScreen() {
     var selectedLanguage by remember {
         mutableStateOf(Language.fromCode(prefs.getString("language", "en") ?: "en"))
     }
-    var currentLevel by remember { mutableIntStateOf(prefs.getInt("current_level", 5)) }
+    var currentLevel by remember { mutableIntStateOf(prefs.getInt("current_level_${selectedLanguage.code}", 5)) }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineLarge)
@@ -32,6 +32,7 @@ fun SettingsScreen() {
                     onClick = {
                         selectedLanguage = lang
                         prefs.edit().putString("language", lang.code).apply()
+                        currentLevel = prefs.getInt("current_level_${lang.code}", 5)
                     },
                     label = { Text("${lang.nativeName} (${lang.displayName})") }
                 )
@@ -44,7 +45,7 @@ fun SettingsScreen() {
             value = currentLevel.toFloat(),
             onValueChange = {
                 currentLevel = it.toInt()
-                prefs.edit().putInt("current_level", currentLevel).apply()
+                prefs.edit().putInt("current_level_${selectedLanguage.code}", currentLevel).apply()
             },
             valueRange = 1f..9f,
             steps = 7

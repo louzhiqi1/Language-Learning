@@ -22,6 +22,7 @@ class EnglishReaderApp : Application() {
         super.onCreate()
         database = AppDatabase.getInstance(this)
         ttsEngine = PiperTtsEngine(this)
+        ttsEngine.load()
         initializeIfFirstRun()
     }
 

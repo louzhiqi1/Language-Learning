@@ -158,27 +158,29 @@ IMAGE_PROMPTS: [one short scene description for a cover image]"""
             level <= 8 -> "passive, causative, conditional (たら/ば), てもらう/てあげる"
             else -> "complex sentences, honorifics, embedded clauses, various conjunctions"
         }
-        val vocabSample = vocabList.joinToString("、")
-        val userContent = """子供向けの短い日本語の物語を書いてください。JLPT N${10 - level}レベルです。
+        val vocabSample = vocabList.take(50).joinToString("、")
+        val jlptLevel = 10 - level
+        val userContent = """Write a short story in Japanese for a child learning Japanese at JLPT N$jlptLevel level.
 
-テーマ: $theme
-構成: $structure
+Topic: $theme
+Structure: $structure
 
-言語ルール:
-- 文法: $grammarDesc
-- 短い文（1文10-15文字程度）
-- 物語の長さ: 100-150文字
-- 主にこれらの単語を使う: $vocabSample
-- 新しい単語は最大${maxNewWords}個まで
-- 自然な会話を含める
+Language rules:
+- Grammar: $grammarDesc
+- Keep sentences short (10-15 characters each)
+- Story length: 100-150 characters total
+- Use mostly these words: $vocabSample
+- You may introduce up to $maxNewWords new words
+- Include natural dialogue
+- Write the story entirely in Japanese (hiragana, katakana, simple kanji)
 
-出力形式:
-TITLE: [楽しいタイトル]
-STORY: [物語]
-NEW_WORDS: [使った新しい単語をカンマ区切りで]
+Output format (use these exact English labels):
+TITLE: [a fun title in Japanese]
+STORY: [the story in Japanese]
+NEW_WORDS: [comma-separated new Japanese words you used]
 IMAGE_PROMPTS: [one short scene description in English for a cover image]"""
 
-        return "<|im_start|>system\nYou are a children's story writer for Japanese learners. Write natural, engaging stories with simple vocabulary and grammar. Always respond in Japanese for the story. /no_think<|im_end|>\n<|im_start|>user\n$userContent<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
+        return "<|im_start|>system\nYou are a children's story writer. Write stories in Japanese with simple vocabulary. /no_think<|im_end|>\n<|im_start|>user\n$userContent<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
     }
 
     companion object {

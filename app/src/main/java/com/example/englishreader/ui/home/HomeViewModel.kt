@@ -52,8 +52,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            val level = prefs.getInt("current_level", 5)
             val lang = Language.fromCode(prefs.getString("language", "en") ?: "en")
+            val level = prefs.getInt("current_level_${lang.code}", 5)
             _uiState.update { it.copy(currentLevel = level, currentLanguage = lang) }
             wordRepo.getMasteredCount().collect { count ->
                 _uiState.update { it.copy(masteredWordCount = count) }
@@ -86,8 +86,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onReturnFromReading() {
         viewModelScope.launch {
-            val level = prefs.getInt("current_level", 5)
             val lang = Language.fromCode(prefs.getString("language", "en") ?: "en")
+            val level = prefs.getInt("current_level_${lang.code}", 5)
             _uiState.update { it.copy(currentLevel = level, currentLanguage = lang) }
             refreshUnreadCount()
             ensureStoryQueue()
