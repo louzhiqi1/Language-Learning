@@ -72,25 +72,39 @@ fun StoryScreen(
         }
 
         uiState.sentenceGroups.forEachIndexed { index, group ->
-            val words = group.split(Regex("\\s+"))
-            FlowRow(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                words.forEach { token ->
-                    Text(
-                        text = "$token ",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.combinedClickable(
+            val isJapanese = uiState.story?.language == "ja"
+            if (isJapanese) {
+                Text(
+                    text = group,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                        .combinedClickable(
                             onClick = { viewModel.speakSentence(group) },
-                            onLongClick = {
-                                val cleanWord = token.replace(Regex("[^a-zA-Z']"), "")
-                                if (cleanWord.isNotBlank()) {
-                                    viewModel.onWordLongPress(cleanWord, group)
-                                }
-                            }
+                            onLongClick = { viewModel.onWordLongPress(group, group) }
                         )
-                    )
+                )
+            } else {
+                val words = group.split(Regex("\\s+"))
+                FlowRow(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    words.forEach { token ->
+                        Text(
+                            text = "$token ",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.combinedClickable(
+                                onClick = { viewModel.speakSentence(group) },
+                                onLongClick = {
+                                    val cleanWord = token.replace(Regex("[^a-zA-Z']"), "")
+                                    if (cleanWord.isNotBlank()) {
+                                        viewModel.onWordLongPress(cleanWord, group)
+                                    }
+                                }
+                            )
+                        )
+                    }
                 }
             }
         }

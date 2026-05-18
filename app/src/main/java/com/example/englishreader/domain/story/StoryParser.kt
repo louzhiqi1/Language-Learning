@@ -96,7 +96,7 @@ class StoryParser {
     }
 
     fun splitIntoGroups(text: String, sentencesPerGroup: Int): List<String> {
-        val sentences = text.split(Regex("(?<=[.!?])\\s+")).filter { it.isNotBlank() }
+        val sentences = text.split(Regex("(?<=[.!?。！？])\\s*")).filter { it.isNotBlank() }
         return sentences.chunked(sentencesPerGroup).map { it.joinToString(" ") }
     }
 
