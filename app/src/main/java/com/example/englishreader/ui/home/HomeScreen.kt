@@ -35,7 +35,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = viewMode
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "English Reader",
+            text = if (uiState.currentLanguage.code == "ja") "日本語リーダー" else "English Reader",
             style = MaterialTheme.typography.headlineLarge,
             textAlign = TextAlign.Center
         )

@@ -13,6 +13,9 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE status = 'MASTERED'")
     suspend fun getMasteredWords(): List<WordEntity>
 
+    @Query("SELECT * FROM words WHERE status = 'MASTERED' AND language = :language")
+    suspend fun getMasteredWordsByLanguage(language: String): List<WordEntity>
+
     @Query("SELECT * FROM words WHERE word = :word")
     suspend fun getWord(word: String): WordEntity?
 

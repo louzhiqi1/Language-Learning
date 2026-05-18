@@ -117,14 +117,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val llama = LlamaInference(getApplication())
                 llama.load("Qwen3-4B-Q4_K_M.gguf", nGpuLayers = 0)
 
+                val language = _uiState.value.currentLanguage
                 val tracker = VocabularyTracker(
-                    getMasteredSuspend = { wordRepo.getMasteredWords() },
+                    getMasteredSuspend = { wordRepo.getMasteredWordsByLanguage(language.code) },
                     getWordSuspend = { null }
                 )
                 val generator = StoryGenerator(llama, tracker)
 
                 val coverTasks = mutableListOf<Pair<Long, String>>()
-                val language = _uiState.value.currentLanguage
                 repeat(count) {
                     try {
                         val parsed = generator.generate(_uiState.value.currentLevel, language)
@@ -161,12 +161,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val llama = LlamaInference(getApplication())
             llama.load("Qwen3-4B-Q4_K_M.gguf", nGpuLayers = 0)
 
+            val language = _uiState.value.currentLanguage
             val tracker = VocabularyTracker(
-                getMasteredSuspend = { wordRepo.getMasteredWords() },
+                getMasteredSuspend = { wordRepo.getMasteredWordsByLanguage(language.code) },
                 getWordSuspend = { null }
             )
             val generator = StoryGenerator(llama, tracker)
-            val parsed = generator.generate(_uiState.value.currentLevel, _uiState.value.currentLanguage)
+            val parsed = generator.generate(_uiState.value.currentLevel, language)
 
             llama.unload()
 

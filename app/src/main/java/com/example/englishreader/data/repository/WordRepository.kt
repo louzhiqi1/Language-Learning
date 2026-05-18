@@ -11,6 +11,9 @@ class WordRepository(private val dao: WordDao) {
     suspend fun getMasteredWords(): List<String> =
         dao.getMasteredWords().map { it.word }
 
+    suspend fun getMasteredWordsByLanguage(language: String): List<String> =
+        dao.getMasteredWordsByLanguage(language).map { it.word }
+
     suspend fun getWord(word: String): WordEntity? = dao.getWord(word)
 
     suspend fun markAsKnown(word: String) {
