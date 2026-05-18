@@ -1,0 +1,19 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/app/build
+
+# Native libraries (built/downloaded via setup script)
+app/src/main/jniLibs/
+app/src/main/cpp/mnn-include/
+
+# Model files
+/models/
+*.gguf
