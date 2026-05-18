@@ -9,6 +9,7 @@ data class WordEntity(
     @PrimaryKey val word: String,
     val meaning: String,
     val status: WordStatus,
+    val language: String = "en",
     val correctCount: Int = 0,
     val wrongCount: Int = 0,
     val firstSeen: Long = System.currentTimeMillis(),

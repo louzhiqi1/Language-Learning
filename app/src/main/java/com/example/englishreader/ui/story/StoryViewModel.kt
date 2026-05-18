@@ -65,7 +65,7 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
             if (existing == null) {
                 val meaning = BasicDictionary.getMeaning(word) ?: ""
                 val example = findSentenceWith(word, story.content)
-                wordRepo.addToVocabulary(word, meaning, example)
+                wordRepo.addToVocabulary(word, meaning, example, story.language)
             }
         }
     }
@@ -109,7 +109,8 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val meaning = _uiState.value.selectedWordMeaning ?: BasicDictionary.getMeaning(word) ?: ""
             val example = _uiState.value.selectedWordExample ?: ""
-            wordRepo.addToVocabulary(word, meaning, example)
+            val language = _uiState.value.story?.language ?: "en"
+            wordRepo.addToVocabulary(word, meaning, example, language)
             _uiState.update { it.copy(selectedWordInVocab = true) }
             dismissWordPopup()
         }

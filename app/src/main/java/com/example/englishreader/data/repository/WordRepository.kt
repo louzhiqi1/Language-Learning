@@ -26,7 +26,7 @@ class WordRepository(private val dao: WordDao) {
         dao.upsert(WordEntity(word = word, meaning = meaning, status = WordStatus.LEARNING))
     }
 
-    suspend fun addToVocabulary(word: String, meaning: String, exampleSentence: String) {
+    suspend fun addToVocabulary(word: String, meaning: String, exampleSentence: String, language: String = "en") {
         val now = System.currentTimeMillis()
         val nextReview = now + 24 * 60 * 60 * 1000L
         dao.upsert(
@@ -34,6 +34,7 @@ class WordRepository(private val dao: WordDao) {
                 word = word,
                 meaning = meaning,
                 status = WordStatus.LEARNING,
+                language = language,
                 exampleSentence = exampleSentence,
                 nextReviewAt = nextReview,
                 reviewInterval = 1,
