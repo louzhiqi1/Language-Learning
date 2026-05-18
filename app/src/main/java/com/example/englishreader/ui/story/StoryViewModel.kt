@@ -15,6 +15,7 @@ import com.example.englishreader.domain.vocabulary.BasicDictionary
 import com.example.englishreader.inference.PiperTtsEngine
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class StoryUiState(
     val story: StoryEntity? = null,
@@ -52,6 +53,8 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update { it.copy(story = story, sentenceGroups = groups) }
             storyRepo.markAsRead(storyId)
             registerNewWords(story)
+            val locale = if (story.language == "ja") Locale.JAPANESE else Locale.US
+            tts.setLanguage(locale)
         }
     }
 
@@ -74,7 +77,12 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onWordLongPress(word: String, sentence: String) {
         viewModelScope.launch {
-            val cleanWord = word.lowercase().replace(Regex("[^a-z']"), "")
+            val isJapanese = _uiState.value.story?.language == "ja"
+            val cleanWord = if (isJapanese) {
+                word.trim()
+            } else {
+                word.lowercase().replace(Regex("[^a-z']"), "")
+            }
             if (cleanWord.isBlank()) return@launch
             val entity = wordRepo.getWord(cleanWord)
             val meaning = entity?.meaning?.ifBlank { null }
@@ -87,6 +95,7 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
                     selectedWordInVocab = entity != null
                 )
             }
+            speakWord(cleanWord)
         }
     }
 

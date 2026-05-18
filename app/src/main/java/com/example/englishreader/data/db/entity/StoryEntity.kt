@@ -11,6 +11,7 @@ data class StoryEntity(
     val level: Int,
     val newWords: String,
     val imagePrompts: String,
+    val language: String = "en",
     val createdAt: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
     val coverImagePath: String = ""

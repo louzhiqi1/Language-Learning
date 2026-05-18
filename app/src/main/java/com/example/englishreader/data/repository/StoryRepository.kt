@@ -10,7 +10,7 @@ class StoryRepository(private val dao: StoryDao) {
     suspend fun markAsRead(id: Long) = dao.markAsRead(id)
     fun getAllStories(): Flow<List<StoryEntity>> = dao.getAllStories()
     fun getReadCount(): Flow<Int> = dao.getReadCount()
-    suspend fun getUnreadCount(): Int = dao.getUnreadCount()
-    suspend fun getNextUnreadStory(): StoryEntity? = dao.getNextUnreadStory()
+    suspend fun getUnreadCount(language: String = "en"): Int = dao.getUnreadCount(language)
+    suspend fun getNextUnreadStory(language: String = "en"): StoryEntity? = dao.getNextUnreadStory(language)
     suspend fun updateCoverImage(id: Long, path: String) = dao.updateCoverImage(id, path)
 }

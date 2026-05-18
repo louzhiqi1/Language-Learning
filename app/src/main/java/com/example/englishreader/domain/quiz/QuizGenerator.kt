@@ -36,7 +36,7 @@ class QuizGenerator(private val getMeaning: suspend (String) -> String) {
             .map { getMeaning(it) }
             .filter { it.isNotBlank() && it != correctMeaning }
 
-        val fillerMeanings = listOf("快乐的", "小的", "去", "看", "说")
+        val fillerMeanings = listOf("a young dog", "very small", "to move fast", "to look at", "to speak words")
         val options = (listOf(correctMeaning) + distractors +
             fillerMeanings.filter { it != correctMeaning })
             .distinct().take(3).shuffled()

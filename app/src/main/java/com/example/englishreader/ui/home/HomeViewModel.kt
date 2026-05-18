@@ -72,7 +72,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun readNextStory() {
         viewModelScope.launch {
-            val next = storyRepo.getNextUnreadStory()
+            val lang = _uiState.value.currentLanguage.code
+            val next = storyRepo.getNextUnreadStory(lang)
             if (next != null) {
                 _navigateToStory.emit(next.id)
             } else {
@@ -94,14 +95,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun refreshUnreadCount() {
-        val count = storyRepo.getUnreadCount()
+        val count = storyRepo.getUnreadCount(_uiState.value.currentLanguage.code)
         _uiState.update { it.copy(unreadCount = count) }
     }
 
     private fun ensureStoryQueue() {
         viewModelScope.launch {
             if (generationMutex.isLocked) return@launch
-            val unread = storyRepo.getUnreadCount()
+            val unread = storyRepo.getUnreadCount(_uiState.value.currentLanguage.code)
             if (unread <= MIN_UNREAD_THRESHOLD) {
                 val toGenerate = BATCH_GENERATE_COUNT
                 generateStoriesInBackground(toGenerate)
@@ -134,7 +135,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             content = parsed.content,
                             level = _uiState.value.currentLevel,
                             newWords = parsed.newWords.joinToString(","),
-                            imagePrompts = parsed.imagePrompts.joinToString("|")
+                            imagePrompts = parsed.imagePrompts.joinToString("|"),
+                            language = language.code
                         )
                         val id = storyRepo.save(entity)
                         refreshUnreadCount()
@@ -173,7 +175,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 content = parsed.content,
                 level = _uiState.value.currentLevel,
                 newWords = parsed.newWords.joinToString(","),
-                imagePrompts = parsed.imagePrompts.joinToString("|")
+                imagePrompts = parsed.imagePrompts.joinToString("|"),
+                language = _uiState.value.currentLanguage.code
             )
             val id = storyRepo.save(entity)
             _uiState.update { it.copy(isGenerating = false) }

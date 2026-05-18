@@ -21,11 +21,11 @@ interface StoryDao {
     @Query("SELECT COUNT(*) FROM stories WHERE isRead = 1")
     fun getReadCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM stories WHERE isRead = 0")
-    suspend fun getUnreadCount(): Int
+    @Query("SELECT COUNT(*) FROM stories WHERE isRead = 0 AND language = :language")
+    suspend fun getUnreadCount(language: String): Int
 
-    @Query("SELECT * FROM stories WHERE isRead = 0 ORDER BY createdAt ASC LIMIT 1")
-    suspend fun getNextUnreadStory(): StoryEntity?
+    @Query("SELECT * FROM stories WHERE isRead = 0 AND language = :language ORDER BY createdAt ASC LIMIT 1")
+    suspend fun getNextUnreadStory(language: String): StoryEntity?
 
     @Query("UPDATE stories SET coverImagePath = :path WHERE id = :id")
     suspend fun updateCoverImage(id: Long, path: String)
