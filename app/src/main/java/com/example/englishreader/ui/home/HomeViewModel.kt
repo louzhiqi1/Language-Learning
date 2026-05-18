@@ -1,12 +1,14 @@
 package com.example.englishreader.ui.home
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.englishreader.EnglishReaderApp
 import com.example.englishreader.data.db.entity.StoryEntity
 import com.example.englishreader.data.repository.StoryRepository
 import com.example.englishreader.data.repository.WordRepository
+import com.example.englishreader.domain.model.Language
 import com.example.englishreader.domain.story.StoryGenerator
 import com.example.englishreader.domain.vocabulary.VocabularyTracker
 import com.example.englishreader.inference.LlamaInference
@@ -22,6 +24,7 @@ data class HomeUiState(
     val currentStory: StoryEntity? = null,
     val masteredWordCount: Int = 0,
     val currentLevel: Int = 5,
+    val currentLanguage: Language = Language.ENGLISH,
     val todayCheckedIn: Boolean = false,
     val reviewDueCount: Int = 0,
     val unreadCount: Int = 0,
@@ -34,6 +37,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val storyRepo = StoryRepository(app.database.storyDao())
     private val generationMutex = Mutex()
     private val imageGenerator = MnnImageGenerator(application)
+    private val prefs = application.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -48,6 +52,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
+            val level = prefs.getInt("current_level", 5)
+            val lang = Language.fromCode(prefs.getString("language", "en") ?: "en")
+            _uiState.update { it.copy(currentLevel = level, currentLanguage = lang) }
             wordRepo.getMasteredCount().collect { count ->
                 _uiState.update { it.copy(masteredWordCount = count) }
             }
@@ -78,6 +85,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onReturnFromReading() {
         viewModelScope.launch {
+            val level = prefs.getInt("current_level", 5)
+            val lang = Language.fromCode(prefs.getString("language", "en") ?: "en")
+            _uiState.update { it.copy(currentLevel = level, currentLanguage = lang) }
             refreshUnreadCount()
             ensureStoryQueue()
         }
@@ -113,9 +123,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val generator = StoryGenerator(llama, tracker)
 
                 val coverTasks = mutableListOf<Pair<Long, String>>()
+                val language = _uiState.value.currentLanguage
                 repeat(count) {
                     try {
-                        val parsed = generator.generate(_uiState.value.currentLevel)
+                        val parsed = generator.generate(_uiState.value.currentLevel, language)
                         android.util.Log.i("StoryGen", "TITLE=[${parsed.title}] CONTENT_LEN=${parsed.content.length} WORDS=${parsed.newWords}")
                         android.util.Log.i("StoryGen", "CONTENT_FIRST100=[${parsed.content.take(100)}]")
                         val entity = StoryEntity(
@@ -153,7 +164,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 getWordSuspend = { null }
             )
             val generator = StoryGenerator(llama, tracker)
-            val parsed = generator.generate(_uiState.value.currentLevel)
+            val parsed = generator.generate(_uiState.value.currentLevel, _uiState.value.currentLanguage)
 
             llama.unload()
 

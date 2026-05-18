@@ -12,6 +12,7 @@ import com.example.englishreader.data.repository.WordRepository
 import com.example.englishreader.domain.model.WordStatus
 import com.example.englishreader.domain.story.StoryParser
 import com.example.englishreader.domain.vocabulary.BasicDictionary
+import com.example.englishreader.inference.PiperTtsEngine
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -35,9 +36,14 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
     private val storyRepo = StoryRepository(app.database.storyDao())
     private val wordRepo = WordRepository(app.database.wordDao())
     private val parser = StoryParser()
+    private val tts = app.ttsEngine
 
     private val _uiState = MutableStateFlow(StoryUiState())
     val uiState: StateFlow<StoryUiState> = _uiState.asStateFlow()
+
+    init {
+        if (!tts.isLoaded) tts.load()
+    }
 
     fun loadStory(storyId: Long) {
         viewModelScope.launch {
@@ -109,9 +115,25 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleTts() {
         _uiState.update { it.copy(ttsEnabled = !it.ttsEnabled) }
+        if (!_uiState.value.ttsEnabled) tts.stop()
     }
 
     fun setTtsSpeed(speed: Float) {
+        tts.setSpeed(speed)
         _uiState.update { it.copy(ttsSpeed = speed) }
+    }
+
+    fun speakSentence(text: String) {
+        if (!_uiState.value.ttsEnabled) return
+        tts.speakAsync(text)
+    }
+
+    fun speakWord(word: String) {
+        tts.speakAsync(word)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        tts.stop()
     }
 }

@@ -82,7 +82,7 @@ fun StoryScreen(
                         text = "$token ",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.combinedClickable(
-                            onClick = {},
+                            onClick = { viewModel.speakSentence(group) },
                             onLongClick = {
                                 val cleanWord = token.replace(Regex("[^a-zA-Z']"), "")
                                 if (cleanWord.isNotBlank()) {

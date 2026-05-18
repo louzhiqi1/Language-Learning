@@ -1,5 +1,6 @@
 package com.example.englishreader.domain.story
 
+import com.example.englishreader.domain.model.Language
 import com.example.englishreader.domain.model.ORT_LEVELS
 import com.example.englishreader.domain.vocabulary.VocabularyTracker
 import com.example.englishreader.inference.LlamaInference
@@ -9,7 +10,7 @@ class StoryGenerator(
     private val vocabTracker: VocabularyTracker,
     private val parser: StoryParser = StoryParser()
 ) {
-    private val themes = listOf(
+    private val englishThemes = listOf(
         "a child finds a lost puppy in the park",
         "two friends build a treehouse together",
         "a family goes camping and sees wild animals",
@@ -32,6 +33,29 @@ class StoryGenerator(
         "a snowy day and building a snowman"
     )
 
+    private val japaneseThemes = listOf(
+        "子供が公園で迷子の子犬を見つける",
+        "友達と一緒にツリーハウスを作る",
+        "家族でキャンプに行って動物を見る",
+        "おばあちゃんとケーキを焼く",
+        "森の中で秘密の道を見つける",
+        "自転車に乗る練習をする",
+        "教室のペットが逃げ出す",
+        "兄弟で大きな木まで競争する",
+        "転校生と友達になる",
+        "雨の日の室内冒険",
+        "農場で赤ちゃん動物を見に行く",
+        "お父さんとお母さんのために劇をする",
+        "庭で不思議な卵を見つける",
+        "ペンパルに手紙を書く",
+        "猫が木に登って降りられなくなる",
+        "自然散歩で葉っぱを集める",
+        "サプライズゲストが来る誕生日パーティー",
+        "海で泳ぎを覚える",
+        "学校でお弁当を分け合う",
+        "雪の日に雪だるまを作る"
+    )
+
     private val storyStructures = listOf(
         "Start with a problem, show the character trying to solve it, end with success.",
         "Begin with a normal day, introduce something unexpected, show how the character reacts.",
@@ -40,21 +64,29 @@ class StoryGenerator(
         "Start with a question, take the reader on a journey to find the answer."
     )
 
-    suspend fun generate(currentLevel: Int): ParsedStory {
+    suspend fun generate(currentLevel: Int, language: Language = Language.ENGLISH): ParsedStory {
         vocabTracker.refreshCache()
         val masteredWords = vocabTracker.getMasteredList()
         val levelInfo = ORT_LEVELS[currentLevel] ?: ORT_LEVELS[5]!!
-        val theme = themes.random()
         val structure = storyStructures.random()
 
+        return when (language) {
+            Language.ENGLISH -> generateEnglish(currentLevel, levelInfo.grammarDescription, masteredWords, structure)
+            Language.JAPANESE -> generateJapanese(currentLevel, masteredWords, structure)
+        }
+    }
+
+    private suspend fun generateEnglish(
+        level: Int, grammarDesc: String, masteredWords: List<String>, structure: String
+    ): ParsedStory {
+        val theme = englishThemes.random()
         val vocabList = if (masteredWords.size >= 50) {
             masteredWords.shuffled().take(200)
         } else {
             ORT5_BASE_VOCAB.shuffled().take(200)
         }
-
         val maxNewWords = (vocabList.size * 0.1).toInt().coerceAtLeast(5).coerceAtMost(15)
-        val prompt = buildPrompt(currentLevel, levelInfo.grammarDescription, vocabList, maxNewWords, theme, structure)
+        val prompt = buildEnglishPrompt(level, grammarDesc, vocabList, maxNewWords, theme, structure)
 
         val output = llama.generate(prompt, maxTokens = 800)
         android.util.Log.i("StoryGen", "RAW_OUTPUT:\n$output")
@@ -63,7 +95,25 @@ class StoryGenerator(
         return parsed.copy(newWords = filteredWords)
     }
 
-    private fun buildPrompt(
+    private suspend fun generateJapanese(
+        level: Int, masteredWords: List<String>, structure: String
+    ): ParsedStory {
+        val theme = japaneseThemes.random()
+        val vocabList = if (masteredWords.size >= 20) {
+            masteredWords.shuffled().take(100)
+        } else {
+            JLPT5_BASE_VOCAB.shuffled().take(100)
+        }
+        val maxNewWords = (vocabList.size * 0.1).toInt().coerceAtLeast(3).coerceAtMost(10)
+        val prompt = buildJapanesePrompt(level, vocabList, maxNewWords, theme, structure)
+
+        val output = llama.generate(prompt, maxTokens = 800)
+        android.util.Log.i("StoryGen", "RAW_OUTPUT_JA:\n$output")
+        val parsed = parser.parse(output)
+        return parsed
+    }
+
+    private fun buildEnglishPrompt(
         level: Int,
         grammarDesc: String,
         vocabList: List<String>,
@@ -92,6 +142,43 @@ NEW_WORDS: [comma-separated new words you used]
 IMAGE_PROMPTS: [one short scene description for a cover image]"""
 
         return "<|im_start|>system\nYou are a children's story writer for early readers. Write natural, engaging stories with simple vocabulary. /no_think<|im_end|>\n<|im_start|>user\n$userContent<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
+    }
+
+    private fun buildJapanesePrompt(
+        level: Int,
+        vocabList: List<String>,
+        maxNewWords: Int,
+        theme: String,
+        structure: String
+    ): String {
+        val grammarDesc = when {
+            level <= 5 -> "です/ます form, simple て-form, basic particles (は、が、を、に、で、と)"
+            level <= 6 -> "て-form connections, たい form, adjective conjugation, から/ので"
+            level <= 7 -> "plain form, と思う, relative clauses, ている for ongoing state"
+            level <= 8 -> "passive, causative, conditional (たら/ば), てもらう/てあげる"
+            else -> "complex sentences, honorifics, embedded clauses, various conjunctions"
+        }
+        val vocabSample = vocabList.joinToString("、")
+        val userContent = """子供向けの短い日本語の物語を書いてください。JLPT N${10 - level}レベルです。
+
+テーマ: $theme
+構成: $structure
+
+言語ルール:
+- 文法: $grammarDesc
+- 短い文（1文10-15文字程度）
+- 物語の長さ: 100-150文字
+- 主にこれらの単語を使う: $vocabSample
+- 新しい単語は最大${maxNewWords}個まで
+- 自然な会話を含める
+
+出力形式:
+TITLE: [楽しいタイトル]
+STORY: [物語]
+NEW_WORDS: [使った新しい単語をカンマ区切りで]
+IMAGE_PROMPTS: [one short scene description in English for a cover image]"""
+
+        return "<|im_start|>system\nYou are a children's story writer for Japanese learners. Write natural, engaging stories with simple vocabulary and grammar. Always respond in Japanese for the story. /no_think<|im_end|>\n<|im_start|>user\n$userContent<|im_end|>\n<|im_start|>assistant\n<think>\n</think>\n"
     }
 
     companion object {
@@ -151,5 +238,31 @@ IMAGE_PROMPTS: [one short scene description for a cover image]"""
             "before", "after", "soon", "always", "never", "sometimes",
             "together", "alone", "ready", "sure", "enough"
         )
+
+        val JLPT5_BASE_VOCAB = listOf(
+            "わたし", "あなた", "かれ", "かのじょ", "これ", "それ", "あれ",
+            "ここ", "そこ", "あそこ", "いつ", "どこ", "だれ", "なに", "なぜ",
+            "はい", "いいえ", "おはよう", "こんにちは", "さようなら", "ありがとう", "すみません",
+            "いく", "くる", "かえる", "たべる", "のむ", "みる", "きく", "よむ", "かく",
+            "はなす", "あそぶ", "ねる", "おきる", "あるく", "はしる", "およぐ",
+            "つくる", "かう", "うる", "おしえる", "ならう", "まつ", "わかる",
+            "おおきい", "ちいさい", "たかい", "やすい", "あたらしい", "ふるい",
+            "いい", "わるい", "おいしい", "たのしい", "うれしい", "かなしい",
+            "あつい", "さむい", "ひろい", "せまい", "ながい", "みじかい",
+            "がっこう", "いえ", "へや", "まち", "みせ", "えき", "びょういん",
+            "こうえん", "やま", "うみ", "かわ", "はな", "き", "そら",
+            "ひと", "こども", "おとこ", "おんな", "ともだち", "せんせい", "かぞく",
+            "おとうさん", "おかあさん", "おにいさん", "おねえさん",
+            "いぬ", "ねこ", "とり", "さかな",
+            "くるま", "でんしゃ", "じてんしゃ", "バス",
+            "あさ", "ひる", "よる", "きょう", "あした", "きのう",
+            "ごはん", "みず", "おちゃ", "パン", "くだもの",
+            "て", "あし", "め", "みみ", "くち", "あたま",
+            "ほん", "えんぴつ", "かばん", "つくえ", "いす",
+            "いち", "に", "さん", "し", "ご", "ろく", "しち", "はち", "きゅう", "じゅう",
+            "とても", "すこし", "もう", "まだ", "いつも", "ときどき",
+            "うえ", "した", "なか", "そと", "まえ", "うしろ", "となり"
+        )
     }
 }
+

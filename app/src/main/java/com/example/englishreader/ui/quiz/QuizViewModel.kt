@@ -1,6 +1,7 @@
 package com.example.englishreader.ui.quiz
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.englishreader.EnglishReaderApp
@@ -8,6 +9,8 @@ import com.example.englishreader.data.db.entity.QuizResultEntity
 import com.example.englishreader.data.repository.CheckInRepository
 import com.example.englishreader.data.repository.StoryRepository
 import com.example.englishreader.data.repository.WordRepository
+import com.example.englishreader.domain.difficulty.DifficultyAction
+import com.example.englishreader.domain.difficulty.DifficultyEngine
 import com.example.englishreader.domain.model.QuizQuestion
 import com.example.englishreader.domain.model.QuizType
 import com.example.englishreader.domain.quiz.QuizGenerator
@@ -21,7 +24,8 @@ data class QuizUiState(
     val isCorrect: Boolean? = null,
     val correctCount: Int = 0,
     val isFinished: Boolean = false,
-    val totalScore: Float = 0f
+    val totalScore: Float = 0f,
+    val levelChanged: DifficultyAction? = null
 )
 
 class QuizViewModel(application: Application) : AndroidViewModel(application) {
@@ -29,9 +33,12 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     private val storyRepo = StoryRepository(app.database.storyDao())
     private val wordRepo = WordRepository(app.database.wordDao())
     private val checkInRepo = CheckInRepository(app.database.checkInDao(), app.database.quizResultDao())
+    private val difficultyEngine = DifficultyEngine()
 
     private val _uiState = MutableStateFlow(QuizUiState())
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
+
+    private val prefs = application.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
     fun loadQuiz(storyId: Long) {
         viewModelScope.launch {
@@ -79,6 +86,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             val score = if (current.questions.isNotEmpty())
                 current.correctCount.toFloat() / current.questions.size else 0f
             _uiState.update { it.copy(isFinished = true, totalScore = score) }
+            evaluateDifficulty(score)
         } else {
             _uiState.update {
                 it.copy(
@@ -88,5 +96,40 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
+    }
+
+    private fun evaluateDifficulty(score: Float) {
+        viewModelScope.launch {
+            val currentLevel = prefs.getInt("current_level", 5)
+            val scores = getRecentScores(score)
+            val action = difficultyEngine.evaluate(currentLevel, scores)
+            if (action != DifficultyAction.STAY) {
+                val newLevel = when (action) {
+                    DifficultyAction.LEVEL_UP -> (currentLevel + 1).coerceAtMost(9)
+                    DifficultyAction.LEVEL_DOWN -> (currentLevel - 1).coerceAtLeast(1)
+                    else -> currentLevel
+                }
+                prefs.edit().putInt("current_level", newLevel).apply()
+                saveScore(score)
+                _uiState.update { it.copy(levelChanged = action) }
+            } else {
+                saveScore(score)
+            }
+        }
+    }
+
+    private fun getRecentScores(currentScore: Float): List<Float> {
+        val saved = prefs.getString("recent_scores", "") ?: ""
+        val list = saved.split(",").filter { it.isNotBlank() }.map { it.toFloat() }.toMutableList()
+        list.add(currentScore)
+        return list.takeLast(10)
+    }
+
+    private fun saveScore(score: Float) {
+        val saved = prefs.getString("recent_scores", "") ?: ""
+        val list = saved.split(",").filter { it.isNotBlank() }.toMutableList()
+        list.add(score.toString())
+        val trimmed = list.takeLast(10)
+        prefs.edit().putString("recent_scores", trimmed.joinToString(",")).apply()
     }
 }

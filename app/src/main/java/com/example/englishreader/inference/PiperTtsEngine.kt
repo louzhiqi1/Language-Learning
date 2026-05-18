@@ -23,6 +23,10 @@ class PiperTtsEngine(private val context: Context) {
         }
     }
 
+    fun setLanguage(locale: Locale) {
+        tts?.language = locale
+    }
+
     fun setSpeed(speed: Float) {
         tts?.setSpeechRate(speed)
     }
