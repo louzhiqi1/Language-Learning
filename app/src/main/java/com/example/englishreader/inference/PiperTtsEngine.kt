@@ -19,6 +19,9 @@ class PiperTtsEngine(private val context: Context) {
                 tts?.language = Locale.US
                 tts?.setSpeechRate(1.0f)
                 ready = true
+                android.util.Log.i("TTS", "TTS engine ready")
+            } else {
+                android.util.Log.e("TTS", "TTS init failed with status: $status")
             }
         }
     }
@@ -51,8 +54,10 @@ class PiperTtsEngine(private val context: Context) {
     }
 
     fun speakAsync(text: String) {
+        android.util.Log.i("TTS", "speakAsync called, ready=$ready, text=${text.take(50)}")
         if (!ready) return
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_async")
+        val result = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_async")
+        android.util.Log.i("TTS", "speak result=$result")
     }
 
     fun stop() {
